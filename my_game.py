@@ -4,7 +4,6 @@ from sys import exit
 #init & global var
 pygame.init()
 gravity = 1
-testing_mode = True
 
 #create window
 WIDTH = 1600
@@ -74,12 +73,12 @@ def play_again(player, player1_name, player2_name):
     else: winner = player2_name + " WON"; winner_color = 'pink'
     winner_text = font.render(winner, 1*len(winner), (255,255,255))
     play_again = font.render('Play again?', 13, (255,255,255))
-    play_againx = WIDTH / 2 - min(play_again.get_width() / 2 , winner_text.get_width() / 2)
+    play_againx = WIDTH / 2 - max(play_again.get_width() / 2 , winner_text.get_width() / 2)
     play_againy = HEIGHT / 2 - (play_again.get_height() / 2 + winner_text.get_height() / 2)
     play_againx_size = max(play_again.get_width(),winner_text.get_width())
     play_againy_size = (play_again.get_height() + winner_text.get_height()+ 20)
     padding = 2*len(winner)
-    pygame.draw.rect(screen, winner_color, ((play_againx - padding*3.5, play_againy - padding),
+    pygame.draw.rect(screen, winner_color, ((play_againx - padding, play_againy - padding),
                                                (play_againx_size + padding*3.5, play_againy_size + padding)))
     screen.blit(winner_text, (WIDTH / 2 - winner_text.get_width() / 2,
                        HEIGHT / 2 -30 - winner_text.get_height() / 2))
@@ -161,7 +160,7 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
                     playerB_gravity = -playerB_jump
                 if (event.key == pygame.K_PAGEDOWN or event.key == pygame.K_PAGEUP):
                     playerB_attack = True
-                if (event.key == pygame.K_r and testing_mode == True):
+                if (event.key == pygame.K_r):
                     choose_option(player1_name, player2_name)
         
         #draw surfaces
@@ -293,7 +292,7 @@ def how_to_play(player1_name, player2_name):
                 pygame.quit()
                 quit()
 
-            if (event.type == pygame.KEYDOWN and event.key == pygame.K_r and testing_mode == True):
+            if (event.type == pygame.KEYDOWN and event.key == pygame.K_r):
                     choose_option(player1_name, player2_name)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 x, y = event.pos
