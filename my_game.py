@@ -17,8 +17,7 @@ clock = pygame.time.Clock()
 font = pygame.font.Font('game_fonts/slkscr.ttf', 50)
 
 #sky
-sky_img = pygame.Surface((WIDTH,HEIGHT*3/4)) #TODO: replace image
-sky_img.fill((90,150,180))
+sky_img = pygame.image.load('game_images/sky.gif').convert_alpha()
 text_surface = font.render('My Game', False, (250, 250, 250))
 
 #playerA (64 x 64)
@@ -50,21 +49,16 @@ current_framesB = 0
 
 
 #ground
-ground_img = pygame.Surface((WIDTH, HEIGHT*1/4)) #TODO: replace image
-ground_img.fill((90,90,90))
+ground_img = pygame.image.load('game_images/ground.gif').convert_alpha()
 ground_rect = ground_img.get_rect(topleft = (0,HEIGHT*3/4))
 
-float_ground1_img = pygame.Surface((WIDTH/4, HEIGHT*1/10)) #TODO: replace image
-float_ground1_img.fill((90,90,90))
+float_ground1_img = pygame.image.load('game_images/float_ground1.gif').convert_alpha()
 float_ground1_rect = float_ground1_img.get_rect(topleft = (WIDTH/10,HEIGHT*3/4-150))
 
-float_ground2_img = pygame.Surface((WIDTH/4, HEIGHT*1/10)) #TODO: replace image
-float_ground2_img.fill((90,90,90))
+float_ground2_img = pygame.image.load('game_images/float_ground2.gif').convert_alpha()
 float_ground2_rect = float_ground2_img.get_rect(topleft = (WIDTH*1/3,HEIGHT*2/6))
 
-float_ground3_img = pygame.Surface((WIDTH/4, HEIGHT*1/10)) #TODO: replace image
-float_ground3_img.fill((90,90,90))
-float_ground3_rect = float_ground3_img.get_rect(topleft = (900,HEIGHT*3/4-150))
+float_ground3_rect = float_ground1_img.get_rect(topleft = (900,HEIGHT*3/4-150))
 
 
 #game functions
@@ -175,7 +169,7 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
         screen.blit(ground_img,ground_rect)
         screen.blit(float_ground1_img, float_ground1_rect)
         screen.blit(float_ground2_img, float_ground2_rect)
-        screen.blit(float_ground3_img, float_ground3_rect)
+        screen.blit(float_ground1_img, float_ground3_rect)
         screen.blit(text_surface, (WIDTH/2-100, 30))
         screen.blit(playerA_img, playerA_rect)
         screen.blit(playerB_img, playerB_rect)
@@ -351,13 +345,15 @@ def choose_option(player1_name, player2_name):
                     if y >= normal_texty - 5 and y <= normal_texty + normal_text.get_height() + 5:
                         in_main_menu = False
                         playerA_img = pygame.image.load('game_images/player/playerA.gif').convert_alpha() 
-                        playerB_img = pygame.image.load('game_images/player/playerB.gif').convert_alpha() 
+                        playerB_img = pygame.image.load('game_images/player/playerB.gif').convert_alpha()
+                        game_restart() 
                         game_loop(playerA_img, playerB_img, 1, player1_name, player2_name)
                 elif x >= special_textx - 5 and x <= special_textx + special_text.get_width() + 5:
                     if y >= special_texty - 5 and y <= special_texty + special_text.get_height() + 5:
                         in_main_menu = False
                         playerA_img = pygame.image.load('game_images/player/specialA.gif').convert_alpha()
-                        playerB_img = pygame.image.load('game_images/player/specialB.gif').convert_alpha()        
+                        playerB_img = pygame.image.load('game_images/player/specialB.gif').convert_alpha()
+                        game_restart()        
                         game_loop(playerA_img, playerB_img, 2, player1_name, player2_name)
                 elif x >= instruction_textx - 5 and x <= instruction_textx + instruction_text.get_width() + 5:
                     if y >= instruction_texty - 5 and y <= instruction_texty + instruction_text.get_height() + 5:
