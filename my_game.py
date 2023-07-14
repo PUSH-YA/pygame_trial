@@ -270,13 +270,12 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
         clock.tick(60)                      # max 60fps         
 
 def how_to_play(player1_name, player2_name):
-    play = pygame.Surface((WIDTH,HEIGHT))
-    play.fill('Red')
+    play = pygame.image.load('game_images/instructions/how_to_play.png').convert_alpha()
     screen.blit(play, (0,0))
 
     back_text = font.render('Back', 13, (255,255,255))
-    back_textx = 100
-    back_texty = HEIGHT  / 5 
+    back_textx = 80
+    back_texty = 60
     pygame.draw.rect(screen, 'black', ((back_textx - 20, back_texty - 20),
                                             (back_text.get_width() + 30, back_text.get_height() + 30)))
     screen.blit(back_text, (back_textx, back_texty))
