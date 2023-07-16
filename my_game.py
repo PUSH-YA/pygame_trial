@@ -16,7 +16,9 @@ clock = pygame.time.Clock()
 font = pygame.font.Font('game_fonts/slkscr.ttf', 50)
 
 #sky
-sky_img = pygame.image.load('game_images/sky.gif').convert_alpha()
+# sky_img = pygame.image.load('game_images/sky_pixelated.gif').convert_alpha()
+sky_img = pygame.Surface((WIDTH,HEIGHT))
+sky_img.fill((85,123,192))
 text_surface = font.render('My Game', False, (250, 250, 250))
 
 #playerA (64 x 64)
@@ -48,13 +50,13 @@ current_framesB = 0
 
 
 #ground
-ground_img = pygame.image.load('game_images/ground.gif').convert_alpha()
+ground_img = pygame.image.load('game_images/ground_pixelated.gif').convert_alpha()
 ground_rect = ground_img.get_rect(topleft = (0,HEIGHT*3/4))
 
-float_ground1_img = pygame.image.load('game_images/float_ground1.gif').convert_alpha()
+float_ground1_img = pygame.image.load('game_images/float_ground_pixelated.gif').convert_alpha()
 float_ground1_rect = float_ground1_img.get_rect(topleft = (WIDTH/10,HEIGHT*3/4-150))
 
-float_ground2_img = pygame.image.load('game_images/float_ground2.gif').convert_alpha()
+float_ground2_img = pygame.image.load('game_images/float_ground2_pixelated.gif').convert_alpha()
 float_ground2_rect = float_ground2_img.get_rect(topleft = (WIDTH*1/3,HEIGHT*2/6))
 
 float_ground3_rect = float_ground1_img.get_rect(topleft = (900,HEIGHT*3/4-150))
@@ -174,6 +176,12 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
         screen.blit(playerB_img, playerB_rect)
 
         #player health
+        print(playerB_health, playerA_health)
+        if int(playerB_health) <= 0:
+            play_again(1, player1_name, player2_name)
+        elif int(playerA_health) <= 0:
+            play_again(2, player1_name, player2_name)
+
         playerA_health_str =player1_name + " health: " + str(int(playerA_health))
         playerA_health_text = font.render(playerA_health_str, False, (0,79,152))
         screen.blit(playerA_health_text, (50, 30))
@@ -253,18 +261,13 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
                 screen.blit(frames[current_framesB], weaponB_rect)
             else: 
                 weaponB_rect = pygame.Rect(playerB_rect.left-50, playerB_rect.top+15, 64,32)
-                screen.blit(pygame.transform.flip(frames[current_framesB], True, False), weaponB_rect)
+                screen.blit(pygame.transform.flip(frames[current_framesB], True, False), weaponB_rect)  
                 
             current_framesB = (current_framesB + 1) % frames_num
             weaponB_timer -= 1
             playerA_hurt_img = pygame.image.load(img_hurt_path+"A_hurt.gif").convert_alpha()
             if weaponB_rect.colliderect(playerA_rect): playerA_health -= 0.1;screen.blit(playerA_hurt_img,playerA_rect)
             if weaponB_timer <= 0: playerB_attack = False; weaponB_timer = 20 
-
-        if playerB_health < 0:
-            play_again(1, player1_name, player2_name)
-        elif playerA_health < 0:
-            play_again(2, player1_name, player2_name)
 
         pygame.display.update() 
         clock.tick(60)                      # max 60fps         
@@ -304,33 +307,61 @@ def how_to_play(player1_name, player2_name):
 
 
 def choose_option(player1_name, player2_name):
-    screen.blit(sky_img,(0,0))
-    screen.blit(ground_img,ground_rect)
-
-    normal_text = font.render('Normal', 13, (255,255,255))
-    normal_textx = WIDTH / 3 - normal_text.get_width()
-    normal_texty = HEIGHT / 4 
-    pygame.draw.rect(screen, (0,79,152), ((normal_textx - 20, normal_texty - 20),
-                                               (normal_text.get_width() + 30, normal_text.get_height() + 30)))
-    screen.blit(normal_text, (normal_textx,normal_texty))
-
-    special_text = font.render('Special', 13, (255,255,255))
-    special_textx = WIDTH *3 / 4 - special_text.get_width()
-    special_texty = HEIGHT / 4 
-    pygame.draw.rect(screen, 'violet', ((special_textx - 20, special_texty - 20),
-                                               (special_text.get_width() + 30, special_text.get_height() + 30)))
-    screen.blit(special_text, (special_textx,special_texty))
-
-    instruction_text = font.render('How to play', 13, (255,255,255))
-    instruction_textx = (normal_textx + normal_text.get_width() + special_textx) /2 - instruction_text.get_width()/2
-    instruction_texty = HEIGHT *3/5 
-    pygame.draw.rect(screen, (150,150,150), ((instruction_textx - 20, instruction_texty - 20),
-                                               (instruction_text.get_width() + 30,instruction_text.get_height() + 30)))
-    screen.blit(instruction_text, (instruction_textx,instruction_texty))
-
     in_main_menu = True
     while in_main_menu:
         clock.tick(60)
+
+        # bcg elements
+        screen.blit(sky_img,(0,0))
+        screen.blit(ground_img,ground_rect)
+
+        normal_text = font.render('Normal', 13, (255,255,255))
+        normal_textx = WIDTH / 3 - normal_text.get_width()
+        normal_texty = HEIGHT / 4 
+
+        special_text = font.render('Special', 13, (255,255,255))
+        special_textx = WIDTH *3 / 4 - special_text.get_width()
+        special_texty = HEIGHT / 4 
+
+        instruction_text = font.render('How to play', 13, (255,255,255))
+        instruction_textx = (normal_textx + normal_text.get_width() + special_textx) /2 - instruction_text.get_width()/2
+        instruction_texty = HEIGHT *3/5 
+
+        # Get the current position of the mouse
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        # Check if the mouse is hovering over the rectangle
+        if normal_textx - 20 <= mouse_x <= normal_textx + normal_text.get_width() + 30 and normal_texty - 20 <= mouse_y <= normal_texty + normal_text.get_height() + 30:
+            highlighted = 1
+        elif special_textx - 20 <= mouse_x <= special_textx + special_text.get_width() + 30 and special_texty - 20 <= mouse_y <= special_texty + special_text.get_height() + 30:
+            highlighted = 2
+        elif instruction_textx - 20 <= mouse_x <= instruction_textx +instruction_text.get_width() + 30 and instruction_texty - 20 <= mouse_y <= instruction_texty + instruction_text.get_height() + 30:
+            highlighted = 3
+        else:
+            highlighted = -1
+            
+        # Draw the highlight
+        if highlighted == 1:
+            pygame.draw.rect(screen, 'lightblue', (normal_textx - 30, normal_texty - 30, normal_text.get_width() + 50, normal_text.get_height() + 50))
+        if highlighted == 2:
+            pygame.draw.rect(screen, 'lightpink', (special_textx - 30, special_texty - 30, special_text.get_width() + 50, special_text.get_height() + 50))
+        if highlighted == 3:
+            pygame.draw.rect(screen, 'lightgrey', (instruction_textx - 30, instruction_texty - 30, instruction_text.get_width() + 50, instruction_text.get_height() + 50))
+        else:
+            pass
+
+
+        #render input boxes and text
+        pygame.draw.rect(screen, (0,79,152), ((normal_textx - 20, normal_texty - 20),
+                                                (normal_text.get_width() + 30, normal_text.get_height() + 30)))
+        screen.blit(normal_text, (normal_textx,normal_texty))
+        pygame.draw.rect(screen, 'violet', ((special_textx - 20, special_texty - 20),
+                                                (special_text.get_width() + 30, special_text.get_height() + 30)))
+        screen.blit(special_text, (special_textx,special_texty))
+        pygame.draw.rect(screen, (150,150,150), ((instruction_textx - 20, instruction_texty - 20),
+                                                (instruction_text.get_width() + 30,instruction_text.get_height() + 30)))
+        screen.blit(instruction_text, (instruction_textx,instruction_texty))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 in_main_menu = False
@@ -357,9 +388,9 @@ def choose_option(player1_name, player2_name):
                     if y >= instruction_texty - 5 and y <= instruction_texty + instruction_text.get_height() + 5:
                         in_main_menu = False
                         how_to_play(player1_name, player2_name)
+
         pygame.display.update()
-        clock.tick(60)
-    
+        clock.tick(60)  
 
 # Function to switch active player for name input
 def switch_active_player():
@@ -376,19 +407,18 @@ def enter_name():
     global player2_active
 
     # Font settings
-    font = pygame.font.Font(None, 40)
     text_color = pygame.Color("White")
 
     # Input box1 settings
-    input_box1_width = 300
-    input_box1_height = 50
+    input_box1_width = 500
+    input_box1_height = 75
     input_box1_x = WIDTH // 2 - input_box1_width // 2
     input_box1_y = HEIGHT // 2 - input_box1_height
     input_box1_rect = pygame.Rect(input_box1_x, input_box1_y, input_box1_width, input_box1_height)
 
     # Input box2 settings
-    input_box2_width = 300
-    input_box2_height = 50
+    input_box2_width = 500
+    input_box2_height = 75
     input_box2_x = WIDTH // 2 - input_box2_width // 2
     input_box2_y = HEIGHT // 2 + input_box2_height + 30
     input_box2_rect = pygame.Rect(input_box2_x, input_box2_y, input_box2_width, input_box2_height)
@@ -430,13 +460,14 @@ def enter_name():
                     elif player2_active:
                         player2_text += event.unicode
 
-        screen.fill(pygame.Color(60,60,60))
+        # screen.fill(pygame.Color(60,60,60))
+        screen.fill(pygame.Color(85,123,192))
 
         # Render text
-        player1_text_surface = font.render("Enter Player 1's name:", True, text_color)
-        player2_text_surface = font.render("Enter Player 2's name:", True, text_color)
-        screen.blit(player1_text_surface, (input_box1_x, input_box1_y - 50))
-        screen.blit(player2_text_surface, (input_box2_x, input_box2_y - 50))
+        player1_text_surface = font.render("Player 1's name (8 char):", True, text_color)
+        player2_text_surface = font.render("Player 2's name (8 char):", True, text_color)
+        screen.blit(player1_text_surface, (input_box1_x - 75, input_box1_y - 50))
+        screen.blit(player2_text_surface, (input_box2_x - 75, input_box2_y - 50))
 
         # Render input boxes
         pygame.draw.rect(screen, pygame.Color((0,79,152)), input_box1_rect)
@@ -446,11 +477,11 @@ def enter_name():
 
         # Render player 1 input text
         player1_input_surface = font.render(player1_text, True, text_color)
-        screen.blit(player1_input_surface, (input_box1_x + 5, input_box1_y + 5))
+        screen.blit(player1_input_surface, (input_box1_x + 5, input_box1_y + 10))
 
         # Render player 2 input text
         player2_input_surface = font.render(player2_text, True, text_color)
-        screen.blit(player2_input_surface, (input_box2_x + 5, input_box2_y + 5))
+        screen.blit(player2_input_surface, (input_box2_x + 5, input_box2_y + 10))
 
         pygame.display.flip()
         pygame.display.update()
