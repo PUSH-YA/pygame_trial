@@ -176,7 +176,6 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
         screen.blit(playerB_img, playerB_rect)
 
         #player health
-        print(playerB_health, playerA_health)
         if int(playerB_health) <= 0:
             play_again(1, player1_name, player2_name)
         elif int(playerA_health) <= 0:
