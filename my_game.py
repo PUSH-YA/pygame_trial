@@ -1,8 +1,10 @@
 import pygame
+import random
 from sys import exit
 
 #init & global var
 pygame.init()
+pygame.mixer.init()
 gravity = 1
 
 #create window
@@ -15,11 +17,28 @@ pygame.display.set_caption('game from scratch')
 clock = pygame.time.Clock()
 font = pygame.font.Font('game_fonts/slkscr.ttf', 50)
 
+
+#game sounds
+bcg_theme = pygame.mixer.Sound('game_sounds/bcg_theme.wav')
+button_press = pygame.mixer.Sound('game_sounds/button.wav')
+jump_sound = pygame.mixer.Sound('game_sounds/jump.wav')
+steps_sound = pygame.mixer.Sound('game_sounds/steps.wav')
+steps_playing = False  # needs a flag bc continuous sound
+steps_sound.set_volume(0.5)
+bcg_theme.set_volume(0.2)
+button_press.set_volume(0.5)
+jump_sound.set_volume(0.5)
+bcg_theme.play(loops=-1)
+
 #sky
-# sky_img = pygame.image.load('game_images/sky_pixelated.gif').convert_alpha()
+sky_img = pygame.image.load('game_images/sky_pixelated.gif').convert_alpha()
 sky_img = pygame.Surface((WIDTH,HEIGHT))
 sky_img.fill((85,123,192))
-text_surface = font.render('My Game', False, (250, 250, 250))
+sky_frame = 0
+sky_frames = []
+for i in range(13):
+    sky_frames.append(pygame.image.load('game_images/sky/' + "sprite_"+str(i)+".png").convert_alpha())
+clouds = False
 
 #playerA (64 x 64)
 PlayerA_img = None
@@ -30,6 +49,7 @@ playerA_gravity = 0
 playerA_jump = 20
 playerA_attack = False
 facing_rightA = True
+playerA_idle = random.randint(0,60)
 
 
 #playerB
@@ -41,6 +61,7 @@ playerB_gravity = 0
 playerB_jump = 20
 playerB_attack = False
 facing_rightB = True
+playerB_idle = random.randint(0,60)
 
 # weapons
 weaponA_timer = 20
@@ -63,6 +84,18 @@ float_ground3_rect = float_ground1_img.get_rect(topleft = (900,HEIGHT*3/4-150))
 
 
 #game functions
+def render_bcg():
+    global clouds
+    if clouds:
+        global sky_frame
+        sky_frame = (sky_frame + 1) % (20*13) # keep sky_frame small
+        sky_frame_num = (sky_frame//20)%13
+        screen.blit(sky_frames[sky_frame_num],(0,0))
+        screen.blit(ground_img,ground_rect)
+    else:
+        screen.blit(sky_img, (0,0))
+    screen.blit(ground_img,ground_rect)
+
 def game_restart():
     playerA_rect.x, playerA_rect.y = 100, 100
     global playerA_health; playerA_health = 10
@@ -123,13 +156,18 @@ def ground_contact(obj_rect):
     else: return -1
 
 def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
+
     #setup player A for game
-    global playerA_health; global playerA_speed; global playerA_gravity; global playerA_jump; global playerA_attack; global facing_rightA
+    global playerA_health; global playerA_speed; global playerA_gravity; global playerA_jump; global playerA_attack; global facing_rightA; global playerA_idle
     global weaponA_timer; global current_framesB
 
     #setup player B for game
-    global playerB_health; global playerB_speed; global playerB_gravity; global playerB_jump; global playerB_attack; global facing_rightB
+    global playerB_health; global playerB_speed; global playerB_gravity; global playerB_jump; global playerB_attack; global facing_rightB; global playerB_idle
     global weaponB_timer; global current_framesA
+
+    # setup for sound
+    global steps_playing
+    global sounds
 
     #load weapon animation
     frames = []
@@ -137,12 +175,16 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
         img_path = 'game_images/player/lightening/'
         frames_num = 15
         img_hurt_path = 'game_images/player/player'
+        attack_sound = pygame.mixer.Sound('game_sounds/lightening.mp3')
     else: 
         img_path = 'game_images/player/special_attack/'
         frames_num = 7
         img_hurt_path = 'game_images/player/special'
+        attack_sound = pygame.mixer.Sound('game_sounds/special_attack.mp3')
     for i in range(frames_num):
         frames.append(pygame.image.load(img_path + "sprite_"+str(i)+".png").convert_alpha())
+    attack_sound.set_volume(0.3)
+
 
     #prevent list out of index if previous had a different mode
     current_framesA, current_framesB = (current_framesA)%frames_num, (current_framesB)%frames_num
@@ -154,26 +196,60 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
                 pygame.quit()              
                 exit()                      # quit system after pygame
             if event.type == pygame.KEYDOWN:
-                if (event.key == pygame.K_w and (ground_contact(playerA_rect)> 0)): 
-                        playerA_gravity = -playerA_jump
+                if (event.key == pygame.K_w and (ground_contact(playerA_rect)> 0)):
+                    jump_sound.play() 
+                    playerA_gravity = -playerA_jump
                 if (event.key == pygame.K_LSHIFT or event.key == pygame.K_e):
+                    attack_sound.play()
                     playerA_attack = True
-                if (event.key == pygame.K_UP and (ground_contact(playerB_rect)> 0)): 
+                if (event.key == pygame.K_UP and (ground_contact(playerB_rect)> 0)):
+                    jump_sound.play() 
                     playerB_gravity = -playerB_jump
                 if (event.key == pygame.K_PAGEDOWN or event.key == pygame.K_PAGEUP):
+                    attack_sound.play()
                     playerB_attack = True
                 if (event.key == pygame.K_r):
+                    button_press.play()
                     choose_option(player1_name, player2_name)
+                if event.key in [pygame.K_a, pygame.K_d, pygame.K_RIGHT, pygame.K_LEFT]:
+                    if not steps_playing:  # Check if the steps sound is not already playing
+                        steps_sound.play(loops=-1)
+                        steps_playing = True
+            elif event.type == pygame.KEYUP:
+                if event.key in [pygame.K_a, pygame.K_d, pygame.K_RIGHT, pygame.K_LEFT]:
+                    steps_sound.stop()
+                    steps_playing = False
+
         
         #draw surfaces
-        screen.blit(sky_img,(0,0))
-        screen.blit(ground_img,ground_rect)
+        render_bcg()
         screen.blit(float_ground1_img, float_ground1_rect)
         screen.blit(float_ground2_img, float_ground2_rect)
         screen.blit(float_ground1_img, float_ground3_rect)
-        screen.blit(text_surface, (WIDTH/2-100, 30))
-        screen.blit(playerA_img, playerA_rect)
-        screen.blit(playerB_img, playerB_rect)
+        # screen.blit(text_surface, (WIDTH/2-150, 30))
+
+        # player A idle animation
+        if playerA_idle <= 30:
+            playerA_idle_img = pygame.transform.scale(playerA_img, (64, 64+8))
+            screen.blit(playerA_idle_img,  (playerA_rect.x, playerA_rect.y - 8, playerA_rect.width, playerA_rect.height+8))
+            if playerA_idle <= 0:
+                playerA_idle = 60
+        else: 
+            screen.blit(playerA_img, playerA_rect)
+
+
+        # player B idle animation 
+        if playerB_idle <= 30:
+            playerB_idle_img = pygame.transform.scale(playerB_img, (64,64+8))
+            screen.blit(playerB_idle_img, (playerB_rect.x, playerB_rect.y - 8, playerB_rect.width, playerB_rect.height+8))
+            if playerB_idle <= 0:
+                playerB_idle = 60
+        else: 
+            screen.blit(playerB_img, playerB_rect)
+        
+        playerA_idle -= 1
+        playerB_idle -= 1
+
 
         #player health
         if int(playerB_health) <= 0:
@@ -181,12 +257,14 @@ def game_loop(playerA_img, playerB_img, mode, player1_name, player2_name):
         elif int(playerA_health) <= 0:
             play_again(2, player1_name, player2_name)
 
-        playerA_health_str =player1_name + " health: " + str(int(playerA_health))
-        playerA_health_text = font.render(playerA_health_str, False, (0,79,152))
+        playerA_health_str =player1_name + ": " + str(int(playerA_health))
+        playerA_health_text = font.render(playerA_health_str, False, 'white')
+        pygame.draw.rect(screen, (0,79,152), (20,30,500*playerA_health/10, playerA_health_text.get_height()))
         screen.blit(playerA_health_text, (50, 30))
-        playerB_health_str = player2_name+ " health: " + str(int(playerB_health))
-        playerB_health_text = font.render(playerB_health_str, False, 'pink')
-        screen.blit(playerB_health_text, (WIDTH-max(70*len(player2_name),600), 30))
+        playerB_health_str = player2_name+ ": " + str(int(playerB_health))
+        playerB_health_text = font.render(playerB_health_str, False, 'white')
+        pygame.draw.rect(screen, 'violet', (WIDTH-max(60*len(player2_name),500)-20,30,500*playerB_health/10, playerB_health_text.get_height()))
+        screen.blit(playerB_health_text, (WIDTH-max(60*len(player2_name),500), 30))
 
         #playerA
         playerA_move(pygame.key.get_pressed())
@@ -294,26 +372,28 @@ def how_to_play(player1_name, player2_name):
                 quit()
 
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_r):
+                    button_press.play()
                     choose_option(player1_name, player2_name)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 x, y = event.pos
                 if x >= back_textx - 5 and x <= back_textx + back_text.get_width() + 5:
                     if y >= back_texty - 5 and y <= back_texty + back_text.get_height() + 5:
                         in_main_menu = False
+                        button_press.play()
                         choose_option(player1_name, player2_name)
         pygame.display.update()
         clock.tick(60)
 
 
 def choose_option(player1_name, player2_name):
+    global clouds
     in_main_menu = True
     while in_main_menu:
         clock.tick(60)
 
-        # bcg elements
-        screen.blit(sky_img,(0,0))
-        screen.blit(ground_img,ground_rect)
-
+        
+        #bcg elements
+        render_bcg()
         normal_text = font.render('Normal', 13, (255,255,255))
         normal_textx = WIDTH / 3 - normal_text.get_width()
         normal_texty = HEIGHT / 4 
@@ -326,6 +406,12 @@ def choose_option(player1_name, player2_name):
         instruction_textx = (normal_textx + normal_text.get_width() + special_textx) /2 - instruction_text.get_width()/2
         instruction_texty = HEIGHT *3/5 
 
+        if clouds: clouds_text_clr = 'white'; 
+        else: clouds_text_clr = 'black'
+        clouds_text = font.render("clouds ?", 13, clouds_text_clr)
+        clouds_textx = WIDTH - clouds_text.get_width() - 30
+        clouds_texty = HEIGHT - clouds_text.get_height() - 20
+
         # Get the current position of the mouse
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
@@ -336,16 +422,20 @@ def choose_option(player1_name, player2_name):
             highlighted = 2
         elif instruction_textx - 20 <= mouse_x <= instruction_textx +instruction_text.get_width() + 30 and instruction_texty - 20 <= mouse_y <= instruction_texty + instruction_text.get_height() + 30:
             highlighted = 3
+        elif clouds_textx - 20 <= mouse_x <= clouds_textx +instruction_text.get_width() + 30 and clouds_texty - 20 <= mouse_y <= clouds_texty + clouds_text.get_height() + 30:
+            highlighted = 4
         else:
             highlighted = -1
             
         # Draw the highlight
         if highlighted == 1:
             pygame.draw.rect(screen, 'lightblue', (normal_textx - 30, normal_texty - 30, normal_text.get_width() + 50, normal_text.get_height() + 50))
-        if highlighted == 2:
+        elif highlighted == 2:
             pygame.draw.rect(screen, 'lightpink', (special_textx - 30, special_texty - 30, special_text.get_width() + 50, special_text.get_height() + 50))
-        if highlighted == 3:
+        elif highlighted == 3:
             pygame.draw.rect(screen, 'lightgrey', (instruction_textx - 30, instruction_texty - 30, instruction_text.get_width() + 50, instruction_text.get_height() + 50))
+        elif highlighted == 4:
+            pygame.draw.rect(screen, 'white', (clouds_textx - 30, clouds_texty - 30, clouds_text.get_width() + 50, clouds_text.get_height() + 50))
         else:
             pass
 
@@ -360,6 +450,11 @@ def choose_option(player1_name, player2_name):
         pygame.draw.rect(screen, (150,150,150), ((instruction_textx - 20, instruction_texty - 20),
                                                 (instruction_text.get_width() + 30,instruction_text.get_height() + 30)))
         screen.blit(instruction_text, (instruction_textx,instruction_texty))
+        if clouds: clouds_box_clr = 'black'
+        else: clouds_box_clr = 'grey'
+        pygame.draw.rect(screen, clouds_box_clr, (( clouds_textx - 20, clouds_texty - 20),
+                                                (clouds_text.get_width() + 30,clouds_text.get_height() + 30)))
+        screen.blit(clouds_text, (clouds_textx,clouds_texty))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -374,19 +469,27 @@ def choose_option(player1_name, player2_name):
                         in_main_menu = False
                         playerA_img = pygame.image.load('game_images/player/playerA.gif').convert_alpha() 
                         playerB_img = pygame.image.load('game_images/player/playerB.gif').convert_alpha()
-                        game_restart() 
+                        game_restart()
+                        button_press.play() 
                         game_loop(playerA_img, playerB_img, 1, player1_name, player2_name)
                 elif x >= special_textx - 5 and x <= special_textx + special_text.get_width() + 5:
                     if y >= special_texty - 5 and y <= special_texty + special_text.get_height() + 5:
                         in_main_menu = False
                         playerA_img = pygame.image.load('game_images/player/specialA.gif').convert_alpha()
                         playerB_img = pygame.image.load('game_images/player/specialB.gif').convert_alpha()
-                        game_restart()        
+                        game_restart()
+                        button_press.play()        
                         game_loop(playerA_img, playerB_img, 2, player1_name, player2_name)
                 elif x >= instruction_textx - 5 and x <= instruction_textx + instruction_text.get_width() + 5:
                     if y >= instruction_texty - 5 and y <= instruction_texty + instruction_text.get_height() + 5:
                         in_main_menu = False
+                        button_press.play()
                         how_to_play(player1_name, player2_name)
+                elif x >= clouds_textx - 5 and x <= clouds_textx + clouds_text.get_width() + 5:
+                    if y >= clouds_texty - 5 and y <= clouds_texty + clouds_text.get_height() + 5:
+                        button_press.play()
+                        if clouds: clouds = False
+                        else: clouds = True
 
         pygame.display.update()
         clock.tick(60)  
@@ -407,6 +510,7 @@ def enter_name():
 
     # Font settings
     text_color = pygame.Color("White")
+
 
     # Input box1 settings
     input_box1_width = 500
@@ -445,6 +549,9 @@ def enter_name():
                     elif player2_active:
                         player2_name = player2_text
                         #duct tape fix bc limited window and dont wanna do dynamic typo
+                        global clouds
+                        clouds = True
+                        button_press.play()
                         choose_option(player1_name[:8], player2_name[:8])
                         pygame.quit()
                         quit()
@@ -459,8 +566,13 @@ def enter_name():
                     elif player2_active:
                         player2_text += event.unicode
 
-        # screen.fill(pygame.Color(60,60,60))
-        screen.fill(pygame.Color(85,123,192))
+        # sky
+        render_bcg()
+
+        # Render title
+        title_font = pygame.font.Font('game_fonts/slkscr.ttf', 100)
+        title_text = title_font.render("Our Game", True, text_color)
+        screen.blit(title_text, (WIDTH/2 - title_text.get_width() /2, 100))
 
         # Render text
         player1_text_surface = font.render("Player 1's name (8 char):", True, text_color)
